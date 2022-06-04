@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+/task/openapi.yaml
+/task/Task.md
+/unit_test.py
+/dev.env
+/docker-compose.yml
+/backend/dev.env

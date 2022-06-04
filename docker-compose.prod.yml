@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: postgres_YandexBackendSchool
+    ports:
+      - 5432:5432
+    networks:
+      - default
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - dev.env
+
+  backend:
+    build: ./backend
+    container_name: backend
+    command: bash entrypoint.sh
+    ports:
+      - 8080:8080
+    networks:
+      - default
+    env_file:
+      - backend/dev.env
+    restart: always
+    depends_on:
+      - db
+volumes:
+  postgres_data:
+
+
+
