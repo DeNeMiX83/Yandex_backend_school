@@ -1,17 +1,14 @@
-from pprint import pprint
-
-from rest_framework import status
+from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import CreateAPIView, ListAPIView
-from rest_framework.response import Response
+from rest_framework.generics import CreateAPIView, RetrieveAPIView
 
-from .serializers import ShopUnitImportSerializer
+from .serializers import *
 from ..services.base import categories_recalculation
-from ..services.error_codes import HTTP_REQUEST, HTTP_400_BAD_REQUEST
+from ..services.responses import HTTP_REQUEST, HTTP_400_BAD_REQUEST
 from ..shop.models import ShopUnit
 
 
-class ShopUnitImport(CreateAPIView):
+class ShopUnitImportView(CreateAPIView):
     serializer_class = ShopUnitImportSerializer
     queryset = ShopUnit.objects.all()
 
@@ -40,11 +37,28 @@ class ShopUnitImport(CreateAPIView):
 
         # Перерасчет поля price у категорий, в которых произошли изменения
         changed_categories = set(
-            ShopUnit.objects.get_shop_unit(
-                id=unit["id"]) for unit in items if unit["type"] == 'CATEGORY')
-        changed_categories.update(set(
-            [ShopUnit.objects.get_shop_unit(id=item["parentId"]) for item in items if
-             item["parentId"] is not None]))
+            ShopUnit.objects.get_shop_unit(id=item["parentId"])
+            for item in items if item["parentId"] is not None)
+
         categories_recalculation(changed_categories)
 
         return HTTP_REQUEST(status.HTTP_200_OK, 'ok')
+
+
+@api_view(http_method_names=['DELETE'])
+def shop_unit_destroy(request, *args, **kwargs):
+    unit = ShopUnit.objects.get(id=kwargs.get("id"))
+    if not unit:
+        return HTTP_400_BAD_REQUEST('Item not found')
+    unit.delete()
+
+    # пересчитать price родителя после удаление child
+    categories_recalculation([unit.parentId])
+    return HTTP_REQUEST(status.HTTP_200_OK, 'ok')
+
+
+class ShopUnitRetrieveView(RetrieveAPIView):
+    serializer_class = ShopUnitRetrieveSerializer
+    queryset = ShopUnit.objects.all()
+    lookup_field = 'id'
+

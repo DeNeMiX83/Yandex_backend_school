@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from rest_framework import serializers, status
 
-
+from ..services.base import categories_recalculation
 from ..shop.models import ShopUnit
 
 
@@ -23,6 +23,7 @@ class ShopUnitImportSerializer(serializers.Serializer):
     price = serializers.IntegerField(allow_null=True,
                                      min_value=0
                                      )
+
     # class Meta:
     #     model = ShopUnit
     #     fields = ('id', 'name', 'date', 'parentId', 'type', 'price')
@@ -33,16 +34,17 @@ class ShopUnitImportSerializer(serializers.Serializer):
 
         if shop_unit is not None:
             print('обновляю')
+            old_parent = shop_unit.parentId
             if shop_unit.type != validated_data['type']:
                 raise serializers.ValidationError()
-            # print(validated_data['name'])
-            # print(shop_unit.name)
-            # валидировать имя когда апдейт
             shop_unit.name = validated_data['name']
             shop_unit.parentId = validated_data['parentId']
-            shop_unit.price = validated_data['price']
+            if shop_unit.type == 'OFFER':
+                shop_unit.price = validated_data['price']
             shop_unit.date = validated_data['date']
             shop_unit.save()
+            # обновляем price у отвязанного родителя
+            categories_recalculation([old_parent])
         else:
             shop_unit = ShopUnit.objects.create(**validated_data)
         return shop_unit
@@ -91,3 +93,35 @@ class ShopUnitImportSerializer(serializers.Serializer):
             print('цена у категории')
             raise serializers.ValidationError()
         return price
+
+
+class PatternShopForRetrieveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShopUnit
+        fields = ('id', 'name', 'date', 'type', 'price', 'parentId')
+
+
+class ShopUnitRetrieveSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ShopUnit
+        fields = ('id', 'name', 'date', 'type', 'price', 'parentId')
+
+    def to_representation(self, unit: ShopUnit):
+        return self.get_json(unit)
+
+    def get_json(self, unit: ShopUnit):
+        children = unit.children.all()
+        data = PatternShopForRetrieveSerializer.to_representation(self, unit)
+        if children is None:
+            return PatternShopForRetrieveSerializer(unit)
+        correct_children = []
+        for child in children:
+            child = self.get_json(child)
+            correct_children.append(child)
+        if unit.type == 'CATEGORY':
+           data.update({'children': correct_children})
+        return data
+
+
+

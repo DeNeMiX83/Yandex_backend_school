@@ -18,7 +18,7 @@ services:
     container_name: backend
     command: bash entrypoint.sh
     ports:
-      - 8080:8080
+      - 80:80
     networks:
       - default
     env_file:
