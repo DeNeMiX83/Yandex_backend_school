@@ -1,6 +1,8 @@
+from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import CreateAPIView, RetrieveAPIView
+from rest_framework.response import Response
 
 from .serializers import *
 from ..services.base import categories_recalculation
@@ -30,10 +32,9 @@ class ShopUnitImportView(CreateAPIView):
         try:
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
-            return HTTP_400_BAD_REQUEST(e.detail)
+            return HTTP_400_BAD_REQUEST(list(e.detail[0].items())[0][1][0])
         # Сохранение объектов
         self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
 
         # Перерасчет поля price у категорий, в которых произошли изменения
         changed_categories = set(
@@ -42,7 +43,7 @@ class ShopUnitImportView(CreateAPIView):
 
         categories_recalculation(changed_categories)
 
-        return HTTP_REQUEST(status.HTTP_200_OK, 'ok')
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(http_method_names=['DELETE'])

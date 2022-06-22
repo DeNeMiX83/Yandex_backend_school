@@ -17,7 +17,6 @@ class ShopUnit(models.Model):
                             unique=True,
                             )
     date = models.DateTimeField(verbose_name='Время последнего обновления элемента',
-                                auto_now=True,
                                 )
     parentId = models.ForeignKey('self',
                                  verbose_name='UUID родительской категории',
