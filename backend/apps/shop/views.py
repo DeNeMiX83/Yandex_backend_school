@@ -1,11 +1,13 @@
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import status
 from rest_framework.decorators import api_view
-from rest_framework.exceptions import ValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.generics import CreateAPIView, RetrieveAPIView
 from rest_framework.response import Response
 
 from .serializers import *
 from ..services.base import categories_recalculation
+from ..services.exсeptions import ValidationError
 from ..services.responses import HTTP_REQUEST, HTTP_400_BAD_REQUEST
 from ..shop.models import ShopUnit
 
@@ -20,11 +22,23 @@ class ShopUnitImportView(CreateAPIView):
         if not updateDate:
             return HTTP_400_BAD_REQUEST("not updateDate")
 
-        # Проверка items и добавления даты в item
+        # Проверка items
         items = request.data.get('items', [])
         if not items:
             return HTTP_400_BAD_REQUEST("list items is empty")
+        # Добавления updateDate, проверка id и name на уникальность
+        count_uuid = dict()
+        count_name = dict()
         for item in items:
+            # проверка id
+            count_uuid[item['id']] = count_uuid.get(item['id'], 0) + 1
+            if count_uuid[item['id']] > 1:
+                return HTTP_400_BAD_REQUEST("uuid duplicate")
+            # проверка name
+            count_name[item['name']] = count_name.get(item['name'], 0) + 1
+            if count_name[item['name']] > 1:
+                return HTTP_400_BAD_REQUEST("name duplicate")
+
             item.update({'date': updateDate})
 
         # Сериализация + валидация
@@ -32,14 +46,16 @@ class ShopUnitImportView(CreateAPIView):
         try:
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
-            return HTTP_400_BAD_REQUEST(list(e.detail[0].items())[0][1][0])
+            return HTTP_400_BAD_REQUEST(e)
         # Сохранение объектов
         self.perform_create(serializer)
 
         # Перерасчет поля price у категорий, в которых произошли изменения
-        changed_categories = set(
-            ShopUnit.objects.get_shop_unit(id=item["parentId"])
-            for item in items if item["parentId"] is not None)
+        changed_categories = set()
+        for item in items:
+            item = ShopUnit.objects.get_shop_unit(id=item.get("parentId"))
+            if item:
+                changed_categories.add(item)
 
         categories_recalculation(changed_categories)
 
@@ -48,13 +64,15 @@ class ShopUnitImportView(CreateAPIView):
 
 @api_view(http_method_names=['DELETE'])
 def shop_unit_destroy(request, *args, **kwargs):
-    unit = ShopUnit.objects.get(id=kwargs.get("id"))
-    if not unit:
-        return HTTP_400_BAD_REQUEST('Item not found')
-    unit.delete()
-
+    try:
+        unit = ShopUnit.objects.get(id=kwargs.get("id"))
+    except DjangoValidationError:
+        return HTTP_400_BAD_REQUEST("Invalid uuid")
+    except ObjectDoesNotExist:
+        return HTTP_400_BAD_REQUEST("Item not found")
     # пересчитать price родителя после удаление child
-    categories_recalculation([unit.parentId])
+    if unit.parentId is not None:
+        categories_recalculation([unit.parentId])
     return HTTP_REQUEST(status.HTTP_200_OK, 'ok')
 
 

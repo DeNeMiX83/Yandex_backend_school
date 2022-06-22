@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from ..services.base import categories_recalculation
 from ..shop.models import ShopUnit
+from ..services.exсeptions import ValidationError
 
 
 class ShopUnitImportSerializer(serializers.Serializer):
@@ -17,9 +18,7 @@ class ShopUnitImportSerializer(serializers.Serializer):
         ('OFFER', 'OFFER'),
         ('CATEGORY', 'CATEGORY')
     ])
-    price = serializers.IntegerField(allow_null=True,
-                                     min_value=0
-                                     )
+    price = serializers.IntegerField(allow_null=True)
 
     def create(self, validated_data):
         id = validated_data.get('id')
@@ -28,7 +27,7 @@ class ShopUnitImportSerializer(serializers.Serializer):
             print('обновляю')
             old_parent = shop_unit.parentId
             if shop_unit.type != validated_data['type']:
-                raise serializers.ValidationError()
+                raise ValidationError()
             shop_unit.name = validated_data['name']
             shop_unit.parentId = validated_data['parentId']
             if shop_unit.type == 'OFFER':
@@ -62,30 +61,30 @@ class ShopUnitImportSerializer(serializers.Serializer):
             return name
         if unit_use_name:
             print('name')
-            raise serializers.ValidationError('name')
+            raise ValidationError('name')
         return name
 
     def _validate_date(self, value):
         try:
             datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%fZ')
         except ValueError:
-            raise serializers.ValidationError('bad updateDate')
+            raise ValidationError('bad updateDate')
         return value
 
     def _validate_parentId(self, pid, unit: ShopUnit):
         parent = ShopUnit.objects.get_shop_unit(id=pid)
         if parent and (parent.type == 'OFFER' or parent == unit):
             print('parent')
-            raise serializers.ValidationError('parentId')
+            raise ValidationError('parentId')
         return parent
 
     def _validate_price(self, price, shop_unit_type):
-        if shop_unit_type == 'OFFER' and price <= 0:
+        if shop_unit_type == 'OFFER' and (price is None or price < 0):
             print('цена у категории')
-            raise serializers.ValidationError('OFFER price must be >= 0')
+            raise ValidationError('OFFER price must be >= 0')
         if shop_unit_type == 'CATEGORY' and price is not None:
             print('цена у категории')
-            raise serializers.ValidationError('CATEGORY price must be null')
+            raise ValidationError('CATEGORY price must be null')
         return price
 
 
