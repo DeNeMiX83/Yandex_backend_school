@@ -136,3 +136,5 @@ dmypy.json
 /docker-compose.yml
 /backend/dev.env
 /task/sss.json
+/task/unit_test.py
+/nginx/default.conf

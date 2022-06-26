@@ -1,5 +1,6 @@
 from pathlib import Path
 from environs import Env
+import os
 
 env = Env()
 env.read_env()
@@ -10,7 +11,7 @@ SECRET_KEY = env.str('DJANGO_SECRET_KEY')
 
 DEBUG = env.bool('DJANGO_DEBUG')
 
-ALLOWED_HOSTS = ['127.0.0.1', '0.0.0.0', 'ended-1972.usr.yandex-academy.ru', 'localhost']
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 # Application definition
 
@@ -105,8 +106,8 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 # Default primary key field type
 
