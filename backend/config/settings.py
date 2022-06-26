@@ -10,8 +10,7 @@ SECRET_KEY = env.str('DJANGO_SECRET_KEY')
 
 DEBUG = env.bool('DJANGO_DEBUG')
 
-ALLOWED_HOSTS = ['127.0.0.1', '0.0.0.0', 'ended-1972.usr.yandex-academy.ru']
-
+ALLOWED_HOSTS = ['127.0.0.1', '0.0.0.0', 'ended-1972.usr.yandex-academy.ru', 'localhost']
 
 # Application definition
 
@@ -57,7 +56,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-
 # Database
 
 DATABASES = {
@@ -71,7 +69,6 @@ DATABASES = {
 
     }
 }
-
 
 # Password validation
 
@@ -90,18 +87,21 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 
-LANGUAGE_CODE = 'ru-ru'
+LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Europe/Moscow'
+TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
 USE_L10N = True
 
 USE_TZ = True
+
+# REST_FRAMEWORK = {
+#     'DATETIME_FORMAT': "%Y-%m-%dT%H:%M:%S.%fZ",
+# }
 
 
 # Static files (CSS, JavaScript, Images)

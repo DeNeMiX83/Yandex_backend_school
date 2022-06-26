@@ -1,15 +1,16 @@
+from datetime import timedelta
+
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
 from rest_framework.decorators import api_view
-from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework.generics import CreateAPIView, RetrieveAPIView
+from rest_framework.generics import CreateAPIView, RetrieveAPIView, ListAPIView
 from rest_framework.response import Response
 
 from .serializers import *
 from ..services.base import categories_recalculation
 from ..services.exсeptions import ValidationError
 from ..services.responses import HTTP_REQUEST, HTTP_400_BAD_REQUEST
-from ..shop.models import ShopUnit
 
 
 class ShopUnitImportView(CreateAPIView):
@@ -41,15 +42,15 @@ class ShopUnitImportView(CreateAPIView):
 
             item.update({'date': updateDate})
 
-        # Сериализация + валидация
         serializer = self.get_serializer(data=items, many=True)
         try:
+            # Сериализация + валидация
             serializer.is_valid(raise_exception=True)
+            # Сохранение объектов
+            self.perform_create(serializer)
         except ValidationError as e:
             return HTTP_400_BAD_REQUEST(e)
-        # Сохранение объектов
-        self.perform_create(serializer)
-
+        print(serializer.data)
         # Перерасчет поля price у категорий, в которых произошли изменения
         changed_categories = set()
         for item in items:
@@ -73,6 +74,7 @@ def shop_unit_destroy(request, *args, **kwargs):
     # пересчитать price родителя после удаление child
     if unit.parentId is not None:
         categories_recalculation([unit.parentId])
+    unit.delete()
     return HTTP_REQUEST(status.HTTP_200_OK, 'ok')
 
 
@@ -81,3 +83,20 @@ class ShopUnitRetrieveView(RetrieveAPIView):
     queryset = ShopUnit.objects.all()
     lookup_field = 'id'
 
+
+class ShopUnitSalesView(ListAPIView):
+    serializer_class = PatternShopForRetrieveSerializer
+
+    def get_queryset(self):
+        query = self.request.GET.get('data')
+        if query is None:
+            raise ValidationError('date is empty')
+        date = validate_date(query)
+        return ShopUnit.objects.filter(date__gte=date - timedelta(hours=24), date__lte=date,
+                                       type='OFFER')
+
+    def get(self, request, *args, **kwargs):
+        try:
+            return self.list(request, *args, **kwargs)
+        except ValidationError as e:
+            return HTTP_400_BAD_REQUEST(e)
