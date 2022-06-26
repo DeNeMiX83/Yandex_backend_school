@@ -42,15 +42,20 @@ class ShopUnitImportView(CreateAPIView):
 
             item.update({'date': updateDate})
 
-        serializer = self.get_serializer(data=items, many=True)
-        try:
-            # Сериализация + валидация
-            serializer.is_valid(raise_exception=True)
-            # Сохранение объектов
-            self.perform_create(serializer)
-        except ValidationError as e:
-            return HTTP_400_BAD_REQUEST(e)
-        print(serializer.data)
+        good_items = []
+        for item in items:
+            serializer = self.get_serializer(data=item)
+            try:
+                # Сериализация + валидация
+                serializer.is_valid(raise_exception=True)
+                good_items.append(serializer)
+            except ValidationError as e:
+                return HTTP_400_BAD_REQUEST(e)
+
+        # Сохранение объектов
+        for item in good_items:
+            self.perform_create(item)
+
         # Перерасчет поля price у категорий, в которых произошли изменения
         changed_categories = set()
         for item in items:
@@ -60,7 +65,7 @@ class ShopUnitImportView(CreateAPIView):
 
         categories_recalculation(changed_categories)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response('ok', status=status.HTTP_200_OK)
 
 
 @api_view(http_method_names=['DELETE'])
