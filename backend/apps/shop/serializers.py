@@ -51,8 +51,6 @@ class ShopUnitImportSerializer(serializers.Serializer):
         data['parentId'] = validate_parentId(data.get('parentId'), shop_unit)
         data['price'] = validate_price(data.get('price'), shop_unit_type)
 
-        # pprint(data)
-
         return data
 
 
