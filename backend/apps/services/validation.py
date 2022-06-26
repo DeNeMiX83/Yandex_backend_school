@@ -16,7 +16,7 @@ def validate_name(name, unit):
 
 def validate_date(value):
     try:
-        date = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%fZ').isoformat()
+        date = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%fZ')
     except ValueError:
         raise ValidationError("date parse failed")
     return date

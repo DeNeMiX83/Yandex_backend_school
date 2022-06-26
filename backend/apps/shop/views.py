@@ -88,7 +88,7 @@ class ShopUnitSalesView(ListAPIView):
     serializer_class = PatternShopForRetrieveSerializer
 
     def get_queryset(self):
-        query = self.request.GET.get('data')
+        query = self.request.GET.get('date')
         if query is None:
             raise ValidationError('date is empty')
         date = validate_date(query)
