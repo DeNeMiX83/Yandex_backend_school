@@ -18,7 +18,8 @@ services:
     container_name: backend
     command: bash entrypoint.sh
     volumes:
-      - ./backend/src/users/migrations:/backend/src/shop/migrations
+      - ./backend/apps/shop/migrations:/backend/apps/shop/migrations
+      - ./backend/static/:/backend/static/
     ports:
       - 80:80
     networks:
