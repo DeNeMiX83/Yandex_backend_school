@@ -21,7 +21,7 @@ services:
       - ./backend/apps/shop/migrations:/backend/apps/shop/migrations
       - ./backend/static/:/backend/static/
     ports:
-      - 80:80
+      - 8000:8000
     networks:
       - default
     env_file:
@@ -29,6 +29,17 @@ services:
     restart: always
     depends_on:
       - db
+
+  nginx:
+    build: nginx
+    container_name: nginx
+    restart: on-failure
+    ports:
+      - 80:80
+    volumes:
+      - ./backend/static:/backend/static
+    depends_on:
+      - backend
 volumes:
   postgres_data:
 

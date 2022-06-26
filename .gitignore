@@ -137,3 +137,5 @@ dmypy.json
 /backend/dev.env
 /task/sss.json
 /backend/static/
+/task/unit_test.py
+/nginx/default.conf
