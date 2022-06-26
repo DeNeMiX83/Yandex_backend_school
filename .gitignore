@@ -136,3 +136,4 @@ dmypy.json
 /docker-compose.yml
 /backend/dev.env
 /task/sss.json
+/backend/static/
